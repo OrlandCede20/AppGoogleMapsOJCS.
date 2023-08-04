@@ -4,8 +4,17 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.graphics.Color;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.JsonArrayRequest;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.Volley;
 import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -15,6 +24,10 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,10 +36,19 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     GoogleMap mMap;
     List<LatLng> lstlongitud;
 
+    TextView Txtsuma;
+
+    private RequestQueue rq;
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        Txtsuma=(TextView)findViewById(R.id.txtSuma);
+        rq= Volley.newRequestQueue(this);
+
 
         SupportMapFragment mapFragment = (SupportMapFragment)
                 getSupportFragmentManager()
@@ -77,8 +99,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         TxtPunto6=(TextView)findViewById(R.id.txtPunto6);
 
 
-
-
         if (lineas.getPoints().size()==6)
         {
             lineas.add(lineas.getPoints().get(0));
@@ -98,5 +118,41 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         }
     }
+    public void CalcuDistan(View v)
+    {
+        String url="https://maps.googleapis.com/maps/api/distancematrix/json?destinations=-1.01265579410353, -79.46705806993107&origins=-1.0123809106065549, -79.47098884738077&units=metters&key=AIzaSyDMmRXHBYOjJyXZruXemR11tl7uiJ2T_Q8";
+        JsonObjectRequest request = new JsonObjectRequest(Request.Method.GET, url, null,
+                new Response.Listener<JSONObject>() {
+                    @Override
+                    public void onResponse(JSONObject response) {
+                        try {
+                            JSONArray filas = response.getJSONArray("rows");
+                            JSONObject fila = filas.getJSONObject(0);
+                            JSONArray datos = fila.getJSONArray("elements");
 
+                            int total = 0,subtotal=0;
+                            for (int i = 0; i < datos.length(); i++) {
+                                JSONObject dato = datos.getJSONObject(i);
+                                JSONObject distancia = dato.getJSONObject("distance");
+                                subtotal = distancia.getInt("value");
+                                total += subtotal;
+                            }
+
+                            Toast.makeText(MainActivity.this, total +" metros", Toast.LENGTH_LONG).show();
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                },
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        // Manejo de error
+                    }
+                });
+
+        // Agrega la solicitud a la cola de solicitudes de Volley
+        RequestQueue queue = Volley.newRequestQueue(this);
+        queue.add(request);
+    }
 }
